@@ -1,8 +1,8 @@
-﻿using System;
+﻿using FI.WebAtividadeEntrevista.ConfigHelper;
+using FI.WebAtividadeEntrevista.Models;
+using FI.WebAtividadeEntrevista.Validators;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Web;
 
 namespace WebAtividadeEntrevista.Models
 {
@@ -12,7 +12,7 @@ namespace WebAtividadeEntrevista.Models
     public class ClienteModel
     {
         public long Id { get; set; }
-        
+
         /// <summary>
         /// CEP
         /// </summary>
@@ -67,5 +67,23 @@ namespace WebAtividadeEntrevista.Models
         /// </summary>
         public string Telefone { get; set; }
 
-    }    
+        private string _cpf;
+
+        /// <summary>
+        /// CPF
+        /// </summary>
+        [Required]
+        [CPFValidator(ErrorMessage = "CPF inválido")]
+        public string CPF
+        {
+            get => _cpf;
+            set => _cpf = Util.RemoveNaoNumericos(value);
+        }
+
+        /// <summary>
+        /// Beneficiários
+        /// </summary>
+        public List<BeneficiarioModel> Beneficiarios { get; set; } = new List<BeneficiarioModel>();
+
+    }
 }
