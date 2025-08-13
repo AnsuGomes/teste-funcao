@@ -17,14 +17,7 @@
         <div class="col-md-6">
             <div class="form-group">
                 <label for="CPF">CPF:</label>
-                @if (Model != null && Model.Id > 0)
-                {
-                    <input required="required" type="text" class="form-control" id="CPF" name="CPF" value="@Model.CPF" placeholder="Ex.: 010.011.111-00" maxlength="14" readonly />
-                }
-                else
-                {
-                    <input required="required" type="text" class="form-control" id="CPF" name="CPF" value="@(Model != null ? Model.CPF : "")" placeholder="Ex.: 010.011.111-00" maxlength="14" />
-                }
+                <input required="required" type="text" class="form-control" id="CPF" name="CPF" placeholder="Ex.: 010.011.111-00" maxlength="15">
             </div>
         </div>
         <div class="col-md-6">

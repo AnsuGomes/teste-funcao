@@ -71,6 +71,32 @@ $(document).ready(function () {
             'IdCliente': beneficiario.IdCliente,
         }
     });
+
+    $(document).on("click", ".excluir-button", function (e) {
+        e.preventDefault();
+
+        const confirmacao = confirm("Tem certeza de que deseja excluir este beneficiário? Este processo é irreversível.");
+
+        if (!confirmacao)
+            return;
+
+        let indexBeneficiario = Number($(this).data("index"));
+
+        if (isNaN(indexBeneficiario) || indexBeneficiario < 0 || indexBeneficiario >= BENEFICIARIO_LIST.length)
+            return;
+
+        let beneficiario = BENEFICIARIO_LIST[indexBeneficiario];
+
+        BENEFICIARIO_LIST.splice(indexBeneficiario, 1);
+
+        localStorage.setItem("beneficiario-list", JSON.stringify(BENEFICIARIO_LIST));
+
+        PreencherListaBeneficiarios();
+        ResetarCamposModal();
+        ResetarVariaveisEdicao();
+
+        ExcluirBeneficiario(beneficiario.Id, beneficiario.IdCliente);
+    });
 });
 
 function MostrarPopUp() {
@@ -215,4 +241,23 @@ function AdicionarLinha(beneficiario, index) {
 
     if ($table.hasClass("hidden"))
         $table.removeClass("hidden");
+}
+
+function ExcluirBeneficiario(beneficiarioId, idCliente) {
+    $.ajax({
+        url: `/Cliente/ExcluirBeneficiario`,
+        type: 'POST',
+        contentType: "application/json; charset=utf-8",
+        data: JSON.stringify({ "Id": beneficiarioId, "IdCliente": idCliente }),
+        success: function (response) {
+            if (response.Result === "OK") {
+                ModalDialog("Beneficiário Excluído", response.Message);
+
+                if (response.BeneficiarioModels)
+                    localStorage.setItem("beneficiario-list", JSON.stringify(response.BeneficiarioModels));
+            }
+            else
+                ModalDialog("Erro ao Excluir Beneficiário", response.Message);
+        }
+    });
 }

@@ -1,12 +1,11 @@
 ﻿using FI.AtividadeEntrevista.BLL;
-using WebAtividadeEntrevista.Models;
+using FI.AtividadeEntrevista.DML;
+using FI.WebAtividadeEntrevista.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using System.Web.Mvc;
-using FI.AtividadeEntrevista.DML;
-using FI.WebAtividadeEntrevista.Models;
+using WebAtividadeEntrevista.Models;
 
 namespace WebAtividadeEntrevista.Controllers
 {
@@ -24,25 +23,30 @@ namespace WebAtividadeEntrevista.Controllers
         }
 
         [HttpPost]
-        public JsonResult Incluir(ClienteModel model)
+        public ActionResult Incluir(ClienteModel model)
         {
-            BoCliente bo = new BoCliente();
-
-            if (!this.ModelState.IsValid)
+            try
             {
-                List<string> erros = (from item in ModelState.Values
-                                      from error in item.Errors
-                                      select error.ErrorMessage).ToList();
+                if (!this.ModelState.IsValid)
+                {
+                    List<string> erros = (from item in ModelState.Values
+                                          from error in item.Errors
+                                          select error.ErrorMessage).ToList();
 
-                Response.StatusCode = 400;
-                return Json(string.Join(Environment.NewLine, erros));
-            }
-            else
-            {
+                    Response.StatusCode = 400;
+                    return Json(string.Join(Environment.NewLine, erros));
+                }
+
+                BoCliente bo = new BoCliente();
+
+                if (bo.VerificarExistencia(model.CPF))
+                {
+                    Response.StatusCode = 400;
+                    return Json("CPF já cadastrado");
+                }
 
                 model.Id = bo.Incluir(new Cliente()
                 {
-                    CPF = model.CPF,
                     CEP = model.CEP,
                     Cidade = model.Cidade,
                     Email = model.Email,
@@ -51,11 +55,32 @@ namespace WebAtividadeEntrevista.Controllers
                     Nacionalidade = model.Nacionalidade,
                     Nome = model.Nome,
                     Sobrenome = model.Sobrenome,
-                    Telefone = model.Telefone
+                    Telefone = model.Telefone,
+                    CPF = model.CPF
                 });
 
+                if (model.BeneficiarioModels != null && model.BeneficiarioModels.Count > 0)
+                {
+                    BoBeneficiario boBeneficiario = new BoBeneficiario();
 
-                return Json("Cadastro efetuado com sucesso");
+                    foreach (BeneficiarioModel beneficiario in model.BeneficiarioModels)
+                    {
+                        if (beneficiario == null) continue;
+
+                        beneficiario.Id = boBeneficiario.Incluir(new Beneficiario()
+                        {
+                            Nome = beneficiario.Nome,
+                            CPF = beneficiario.CPF,
+                            IdCliente = model.Id
+                        });
+                    }
+                }
+
+                return Json(new { Result = "OK", Message = "Cadastro efetuado com sucesso", BeneficiarioModels = model.BeneficiarioModels });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Result = "ERROR", Message = ex.Message });
             }
         }
 
@@ -111,26 +136,27 @@ namespace WebAtividadeEntrevista.Controllers
         public ActionResult Alterar(long id)
         {
             BoCliente bo = new BoCliente();
-            Cliente cliente = bo.Consultar(id);
-            Models.ClienteModel model = null;
 
-            if (cliente != null)
+            Cliente cliente = bo.Consultar(id);
+
+            if (cliente == null)
+                return View(model: null);
+
+            ClienteModel model = new ClienteModel()
             {
-                model = new ClienteModel()
-                {
-                    Id = cliente.Id,
-                    CEP = cliente.CEP,
-                    Cidade = cliente.Cidade,
-                    Email = cliente.Email,
-                    Estado = cliente.Estado,
-                    Logradouro = cliente.Logradouro,
-                    Nacionalidade = cliente.Nacionalidade,
-                    Nome = cliente.Nome,
-                    Sobrenome = cliente.Sobrenome,
-                    Telefone = cliente.Telefone,
-                    CPF = cliente.CPF
-                };
-            }
+                Id = cliente.Id,
+                CEP = cliente.CEP,
+                Cidade = cliente.Cidade,
+                Email = cliente.Email,
+                Estado = cliente.Estado,
+                Logradouro = cliente.Logradouro,
+                Nacionalidade = cliente.Nacionalidade,
+                Nome = cliente.Nome,
+                Sobrenome = cliente.Sobrenome,
+                Telefone = cliente.Telefone,
+                CPF = cliente.CPF,
+                BeneficiarioModels = GetBeneficiarioModels(id)
+            };
 
             return View(model);
         }
@@ -207,6 +233,30 @@ namespace WebAtividadeEntrevista.Controllers
                 Nome = x.Nome,
                 IdCliente = x.IdCliente
             }).ToList();
+        }
+
+        [HttpPost]
+        public ActionResult ExcluirBeneficiario(long id, long idCliente)
+        {
+            try
+            {
+                BoBeneficiario boBeneficiario = new BoBeneficiario();
+
+                boBeneficiario.Excluir(id);
+
+                if (idCliente > 0)
+                {
+                    List<BeneficiarioModel> beneficiarioModels = GetBeneficiarioModels(idCliente);
+
+                    return Json(new { Result = "OK", Message = "Beneficiário excluído com sucesso!", BeneficiarioModels = beneficiarioModels });
+                }
+
+                return Json(new { Result = "OK", Message = "Beneficiário excluído com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Result = "ERROR", Message = ex.Message });
+            }
         }
     }
 }
