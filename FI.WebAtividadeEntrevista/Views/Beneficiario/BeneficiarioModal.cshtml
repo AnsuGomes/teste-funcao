@@ -1,0 +1,60 @@
+<!-- Modal -->
+<div class="modal fade" id="modalBeneficiarios" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header d-flex align-items-center">
+                <h4 class="modal-title mb-0">
+                    Beneficiários
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <form id="beneficiario-modal-container" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="CPFBeneficiario" class="small">CPF</label>
+                                <input required="required" type="text" class="form-control" id="CPFBeneficiario" name="CPF"
+                                       placeholder="Ex.: 010.011.111-00" maxlength="14">
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="form-group">
+                                <label for="NomeBeneficiario" class="small">Nome</label>
+                                <input required="required" type="text" class="form-control" id="NomeBeneficiario" name="Nome"
+                                       placeholder="Ex: Maria" maxlength="50">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label class="small">&nbsp;</label>
+                                <button id="IncluirBeneficiario" type="submit" class="btn btn-success form-control">
+                                    Incluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tableBeneficiarios">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>CPF</th>
+                                <th>Nome</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="semBeneficiarios" class="alert alert-info text-center" style="display: none;">
+                    Nenhum beneficiário cadastrado.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

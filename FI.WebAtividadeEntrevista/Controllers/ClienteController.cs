@@ -147,5 +147,11 @@ namespace WebAtividadeEntrevista.Controllers
                 return Json(new { Result = "ERROR", Message = ex.Message });
             }
         }
+
+        [HttpPost]
+        public ActionResult BeneficiarioModal()
+        {
+            return PartialView("~/Views/Beneficiario/BeneficiarioModal.cshtml");
+        }
     }
 }
