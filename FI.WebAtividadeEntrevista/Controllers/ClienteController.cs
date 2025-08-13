@@ -62,19 +62,28 @@ namespace WebAtividadeEntrevista.Controllers
         [HttpPost]
         public JsonResult Alterar(ClienteModel model)
         {
-            BoCliente bo = new BoCliente();
-
-            if (!this.ModelState.IsValid)
+            try
             {
-                List<string> erros = (from item in ModelState.Values
-                                      from error in item.Errors
-                                      select error.ErrorMessage).ToList();
+                if (!this.ModelState.IsValid)
+                {
+                    List<string> erros = (from item in ModelState.Values
+                                          from error in item.Errors
+                                          select error.ErrorMessage).ToList();
 
-                Response.StatusCode = 400;
-                return Json(string.Join(Environment.NewLine, erros));
-            }
-            else
-            {
+                    Response.StatusCode = 400;
+                    return Json(string.Join(Environment.NewLine, erros));
+                }
+
+                BoCliente bo = new BoCliente();
+
+                Cliente cliente = bo.Consultar(model.Id);
+
+                if (cliente == null || (cliente.CPF != model.CPF && bo.VerificarExistencia(model.CPF)))
+                {
+                    Response.StatusCode = 400;
+                    return Json("Não foi possível alterar as informações cadastradas");
+                }
+
                 bo.Alterar(new Cliente()
                 {
                     Id = model.Id,
@@ -87,10 +96,14 @@ namespace WebAtividadeEntrevista.Controllers
                     Nome = model.Nome,
                     Sobrenome = model.Sobrenome,
                     Telefone = model.Telefone,
-                    CPF = model.CPF,
+                    CPF = model.CPF
                 });
 
-                return Json("Cadastro alterado com sucesso");
+                return Json(new { Result = "OK", Message = "Cadastro alterado com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Result = "ERROR", Message = ex.Message });
             }
         }
 

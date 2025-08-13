@@ -10,7 +10,7 @@ $(document).ready(function () {
         $('.modal-backdrop').remove();
     });
 
-    $(document).on("click", "#IncluirBeneficiario", function (e) {
+    $(document).on("click", "#incluir-button", function (e) {
         e.preventDefault();
 
         let cpfBeneficiario = $("#CPFBeneficiario").val()
@@ -52,6 +52,24 @@ $(document).ready(function () {
         PreencherListaBeneficiarios();
         ResetarCamposModal();
         ResetarVariaveisEdicao();
+    });
+
+    $(document).on("click", ".alterar-button", function (e) {
+        e.preventDefault();
+
+        ALTER_BENF_INDEX = Number($(this).data("index"));
+
+        let beneficiario = BENEFICIARIO_LIST[ALTER_BENF_INDEX];
+
+        $("#CPFBeneficiario").val(formatarCPF(beneficiario.CPF))
+        $("#NomeBeneficiario").val(beneficiario.Nome)
+
+        ALTER_ORIGINAL_OBJ = {
+            'Id': beneficiario.Id,
+            'CPF': beneficiario.CPF,
+            'Nome': beneficiario.Nome,
+            'IdCliente': beneficiario.IdCliente,
+        }
     });
 });
 
@@ -174,4 +192,27 @@ function PreencherListaBeneficiarios() {
             BENEFICIARIO_LIST = parsedList;
         }
     }
+}
+
+function AdicionarLinha(beneficiario, index) {
+    let novaLinha = `
+        <tr>
+            <input type="hidden" id="id-benef" name="id-benef" value="${beneficiario.Id}">
+            <input type="hidden" id="id-client" name="id-client" value="${beneficiario.IdCliente}">
+            <td data-label="CPF">${formatarCPF(beneficiario.CPF)}</td>
+            <td class="nome-cell" data-label="Nome" title="${beneficiario.Nome}">${beneficiario.Nome}</td>
+            <td data-label="Ações" style="justify-content: space-between; display: flex;">
+                <button data-index="${index}" class="btn btn-primary alterar-button">Alterar</button>
+                <button data-index="${index}" class="btn btn-primary excluir-button">Excluir</button>
+            </td>
+        </tr>
+    `;
+
+    const $table = $("table.table");
+    const $tbody = $table.find("tbody");
+
+    $tbody.append(novaLinha);
+
+    if ($table.hasClass("hidden"))
+        $table.removeClass("hidden");
 }
