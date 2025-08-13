@@ -1,5 +1,4 @@
-﻿
-CREATE OR ALTER PROC FI_SP_AltCliente
+﻿CREATE OR ALTER PROC FI_SP_AltCliente
     @NOME          VARCHAR (50) ,
     @SOBRENOME     VARCHAR (255),
     @NACIONALIDADE VARCHAR (50) ,
@@ -10,7 +9,7 @@ CREATE OR ALTER PROC FI_SP_AltCliente
     @EMAIL         VARCHAR (2079),
     @TELEFONE      VARCHAR (15),
 	@Id            BIGINT,
-	@CPF           VARCHAR (11)
+	@CPF		   VARCHAR (11)
 AS
 BEGIN
 	UPDATE CLIENTES 

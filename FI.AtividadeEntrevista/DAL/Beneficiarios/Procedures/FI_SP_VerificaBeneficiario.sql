@@ -1,4 +1,3 @@
-
 CREATE OR ALTER PROC FI_SP_VerificaBeneficiario
 	@CPF VARCHAR(14)
 AS

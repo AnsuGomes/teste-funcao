@@ -1,4 +1,3 @@
-
 CREATE OR ALTER PROC FI_SP_DelBeneficiario
 	@ID BIGINT
 AS
