@@ -61,7 +61,7 @@ $(document).ready(function () {
 
         let beneficiario = BENEFICIARIO_LIST[ALTER_BENF_INDEX];
 
-        $("#CPFBeneficiario").val(formatarCPF(beneficiario.CPF))
+        $("#CPFBeneficiario").val(formatarCPF(beneficiario.CPF)).mask('000.000.000-00');
         $("#NomeBeneficiario").val(beneficiario.Nome)
 
         ALTER_ORIGINAL_OBJ = {
@@ -97,6 +97,17 @@ $(document).ready(function () {
 
         ExcluirBeneficiario(beneficiario.Id, beneficiario.IdCliente);
     });
+
+    $(document).on("click", "#beneficiario-modal", function (e) {
+        e.preventDefault();
+
+        const parsedList = JSON.parse(localStorage.getItem("beneficiario-list"))
+
+        if (Array.isArray(parsedList) && parsedList.length > 0)
+            BENEFICIARIO_LIST = parsedList;
+        else
+            BENEFICIARIO_LIST = []
+    });
 });
 
 function MostrarPopUp() {
@@ -114,7 +125,7 @@ function MostrarPopUp() {
                 if (response.Status === undefined) {
                     $('#modal-container').html(response);
                     $('#modalBeneficiarios').modal('show');
-                    $('#cpf-modal').mask('000.000.000-00');
+                    $('#CPFBeneficiario').mask('000.000.000-00');
 
                     PreencherListaBeneficiarios();
 
@@ -174,8 +185,8 @@ function ValidarCampos(cpf, nome) {
 }
 
 function ResetarCamposModal() {
-    $("#cpf-modal").val("");
-    $("#nome-modal").val("");
+    $("#CPFBeneficiario").val("");
+    $("#NomeBeneficiario").val("");
 }
 
 function ResetarVariaveisEdicao() {
@@ -185,18 +196,20 @@ function ResetarVariaveisEdicao() {
 
 function IncluirBeneficiario(beneficiario) {
     $.ajax({
-        url: `/Cliente/IncluirBeneficiario`,
+        url: '/Cliente/IncluirBeneficiario',
         type: 'POST',
-        contentType: "application/json; charset=utf-8",
+        contentType: 'application/json; charset=utf-8',
         data: JSON.stringify(beneficiario),
         success: function (response) {
-            if (response.Result === "OK") {
-                ModalDialog(`Beneficiário Criado/Atualiazado`, response.Message);
-
-                localStorage.setItem("beneficiario-list", JSON.stringify(response.BeneficiarioModels));
+            if (response.Result === 'OK') {
+                alert(response.Message);
+                localStorage.setItem('beneficiario-list', JSON.stringify(response.BeneficiarioModels));
+            } else {
+                alert(response.Message);
             }
-            else
-                ModalDialog(`Erro ao Criado/Atualiazado Beneficiário`, response.Message);
+        },
+        error: function () {
+            alert('Erro na comunicação com o servidor.');
         }
     });
 }
@@ -251,13 +264,17 @@ function ExcluirBeneficiario(beneficiarioId, idCliente) {
         data: JSON.stringify({ "Id": beneficiarioId, "IdCliente": idCliente }),
         success: function (response) {
             if (response.Result === "OK") {
-                ModalDialog("Beneficiário Excluído", response.Message);
+                alert(response.Message);
 
                 if (response.BeneficiarioModels)
                     localStorage.setItem("beneficiario-list", JSON.stringify(response.BeneficiarioModels));
             }
             else
-                ModalDialog("Erro ao Excluir Beneficiário", response.Message);
+                alert(response.Message);
+        },
+
+        error: function () {
+            alert('Erro na comunicação com o servidor.');
         }
     });
 }
