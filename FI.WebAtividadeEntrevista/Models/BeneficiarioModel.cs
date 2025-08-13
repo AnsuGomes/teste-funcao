@@ -20,5 +20,7 @@ namespace FI.WebAtividadeEntrevista.Models
             get => _cpf;
             set => _cpf = Util.RemoveNaoNumericos(value);
         }
+
+        public long IdCliente { get; set; }
     }
 }

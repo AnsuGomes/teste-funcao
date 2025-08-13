@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using FI.AtividadeEntrevista.DML;
+using FI.WebAtividadeEntrevista.Models;
 
 namespace WebAtividadeEntrevista.Controllers
 {
@@ -152,6 +153,47 @@ namespace WebAtividadeEntrevista.Controllers
         public ActionResult BeneficiarioModal()
         {
             return PartialView("~/Views/Beneficiario/BeneficiarioModal.cshtml");
+        }
+
+        [HttpPost]
+        public ActionResult IncluirBeneficiario(BeneficiarioModel beneficiarioModel)
+        {
+            try
+            {
+                BoBeneficiario boBeneficiario = new BoBeneficiario();
+
+                Beneficiario beneficiario = new Beneficiario
+                {
+                    Id = beneficiarioModel.Id,
+                    Nome = beneficiarioModel.Nome,
+                    CPF = beneficiarioModel.CPF,
+                    IdCliente = beneficiarioModel.IdCliente
+                };
+
+                if (boBeneficiario.VerificarExistencia(beneficiario.CPF))
+                    boBeneficiario.Alterar(beneficiario);
+                else
+                    boBeneficiario.Incluir(beneficiario);
+
+                List<BeneficiarioModel> beneficiarioModels = GetBeneficiarioModels(beneficiarioModel.IdCliente);
+
+                return Json(new { Result = "OK", Message = "Beneficiário salvo com sucesso!", BeneficiarioModels = beneficiarioModels });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Result = "ERROR", Message = ex.Message });
+            }
+        }
+
+        private static List<BeneficiarioModel> GetBeneficiarioModels(long idCliente)
+        {
+            return new BoBeneficiario().ListarBeneficiarios(idCliente).Select(x => new BeneficiarioModel()
+            {
+                Id = x.Id,
+                CPF = x.CPF,
+                Nome = x.Nome,
+                IdCliente = x.IdCliente
+            }).ToList();
         }
     }
 }

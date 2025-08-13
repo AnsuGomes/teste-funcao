@@ -1,9 +1,12 @@
 ﻿
 $(document).ready(function () {
-    $('#cpf').mask('000.000.000-00');
+    $('#CPF').mask('000.000.000-00');
 
     $('#formCadastro').submit(function (e) {
         e.preventDefault();
+
+        let beneficiarios = JSON.parse(localStorage.getItem("beneficiario-list"))
+
         $.ajax({
             url: urlPost,
             method: "POST",
@@ -17,7 +20,8 @@ $(document).ready(function () {
                 "Cidade": $(this).find("#Cidade").val(),
                 "Logradouro": $(this).find("#Logradouro").val(),
                 "Telefone": $(this).find("#Telefone").val(),
-                "CPF": $(this).find("#CPF").val()
+                "CPF": $(this).find("#CPF").val(),
+                "BeneficiarioModels": beneficiarios
             },
             error:
                 function (r) {
@@ -28,8 +32,9 @@ $(document).ready(function () {
                 },
             success:
                 function (r) {
-                    ModalDialog("Sucesso!", r)
+                    ModalDialog("Sucesso!", r.Message)
                     $("#formCadastro")[0].reset();
+                    localStorage.removeItem("beneficiario-list");
                 }
         });
     })
