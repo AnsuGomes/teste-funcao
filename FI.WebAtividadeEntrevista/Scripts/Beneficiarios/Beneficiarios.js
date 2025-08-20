@@ -1,280 +1,284 @@
-let BENEFICIARIO_LIST = []
-let ALTER_BENF_INDEX = null
-let ALTER_ORIGINAL_OBJ = null
+const BeneficiariosModule = (() => {
+    // Variaveis de estado encapsuladas no módulo
+    let beneficiarioList = [];
+    let editarIndex = null;
+    let originalBeneficiario = null;
 
-$(document).ready(function () {
-    MostrarPopUp();
+    // Seletores como constantes internas
+    const selectors = {
+        modalBeneficiarios: '#modalBeneficiarios',
+        beneficiarioModalTrigger: '#beneficiario-modal',
+        incluirBtn: '#incluir-button',
+        cpfInput: '#CPFBeneficiario',
+        nomeInput: '#NomeBeneficiario',
+        table: 'table.table',
+        tableBody: 'table.table tbody'
+    };
 
-    $(document).on('hidden.bs.modal', '#modalBeneficiarios', function () {
-        $('#beneficiario-modal').focus();
-        $('.modal-backdrop').remove();
-    });
+    // Funcoes internas do modulo
+    const isAlterarFluxo = () => window.location.href.includes('Alterar');
 
-    $(document).on("click", "#incluir-button", function (e) {
-        e.preventDefault();
+    const obterIdCliente = () => {
+        if (isAlterarFluxo())
+            return Number(window.location.href.slice(-1));
 
-        let cpfBeneficiario = $("#CPFBeneficiario").val()
-        let nomeBeneficiario = $("#NomeBeneficiario").val()
+        return 0;
+    };
 
-        if (ValidarCampos(cpfBeneficiario, nomeBeneficiario))
+    const atualizarLocalStorage = () => {
+        localStorage.setItem('beneficiario-list', JSON.stringify(beneficiarioList));
+    };
+
+    const resetarCampos = () => {
+        $(selectors.cpfInput).val('');
+        $(selectors.nomeInput).val('');
+    };
+
+    const resetarEdicao = () => {
+        editarIndex = null;
+        originalBeneficiario = null;
+    };
+
+    const preencherTabela = () => {
+        const storedList = localStorage.getItem('beneficiario-list');
+        if (!storedList) {
+            $(selectors.table).addClass('hidden');
+            $(selectors.tableBody).empty();
+            beneficiarioList = [];
             return;
-
-        let fluxoAlterar = this.baseURI.includes("Alterar");
-
-        if (ALTER_BENF_INDEX === null) {
-            let novoBeneficiario = {
-                'Id': 0,
-                'CPF': cpfBeneficiario,
-                'Nome': nomeBeneficiario,
-                'IdCliente': fluxoAlterar ? Number(this.baseURI.slice(-1)) : 0
-            }
-
-            BENEFICIARIO_LIST.push(novoBeneficiario);
-
-            if (fluxoAlterar)
-                IncluirBeneficiario(BENEFICIARIO_LIST[BENEFICIARIO_LIST.length - 1])
-        } else {
-            const parsedList = JSON.parse(localStorage.getItem("beneficiario-list"))
-
-            BENEFICIARIO_LIST[ALTER_BENF_INDEX] = {
-                'Id': parsedList[ALTER_BENF_INDEX].Id,
-                'CPF': cpfBeneficiario,
-                'Nome': nomeBeneficiario,
-                'IdCliente': parsedList[ALTER_BENF_INDEX].IdCliente,
-            };
-
-            if (fluxoAlterar)
-                IncluirBeneficiario(BENEFICIARIO_LIST[ALTER_BENF_INDEX])
         }
 
-        localStorage.setItem("beneficiario-list", JSON.stringify(BENEFICIARIO_LIST));
-
-        PreencherListaBeneficiarios();
-        ResetarCamposModal();
-        ResetarVariaveisEdicao();
-    });
-
-    $(document).on("click", ".alterar-button", function (e) {
-        e.preventDefault();
-
-        ALTER_BENF_INDEX = Number($(this).data("index"));
-
-        let beneficiario = BENEFICIARIO_LIST[ALTER_BENF_INDEX];
-
-        $("#CPFBeneficiario").val(formatarCPF(beneficiario.CPF)).mask('000.000.000-00');
-        $("#NomeBeneficiario").val(beneficiario.Nome)
-
-        ALTER_ORIGINAL_OBJ = {
-            'Id': beneficiario.Id,
-            'CPF': beneficiario.CPF,
-            'Nome': beneficiario.Nome,
-            'IdCliente': beneficiario.IdCliente,
+        const parsedList = JSON.parse(storedList);
+        if (!Array.isArray(parsedList) || parsedList.length === 0) {
+            $(selectors.table).addClass('hidden');
+            $(selectors.tableBody).empty();
+            beneficiarioList = [];
+            return;
         }
-    });
 
-    $(document).on("click", ".excluir-button", function (e) {
-        e.preventDefault();
+        beneficiarioList = parsedList;
+        const $tbody = $(selectors.tableBody);
+        $tbody.empty();
 
-        const confirmacao = confirm("Tem certeza de que deseja excluir este beneficiário? Este processo é irreversível.");
+        parsedList.forEach((item, index) => {
+            const row = `
+                <tr>
+                    <input type="hidden" name="id-benef" value="${item.Id}">
+                    <input type="hidden" name="id-client" value="${item.IdCliente}">
+                    <td data-label="CPF">${formatarCPF(item.CPF)}</td>
+                    <td class="nome-cell" data-label="Nome" title="${item.Nome}">${item.Nome}</td>
+                    <td data-label="Ações" style="display: flex; justify-content: space-between;">
+                        <button data-index="${index}" class="btn btn-primary alterar-button">Alterar</button>
+                        <button data-index="${index}" class="btn btn-primary excluir-button">Excluir</button>
+                    </td>
+                </tr>`;
 
-        if (!confirmacao)
-            return;
-
-        let indexBeneficiario = Number($(this).data("index"));
-
-        if (isNaN(indexBeneficiario) || indexBeneficiario < 0 || indexBeneficiario >= BENEFICIARIO_LIST.length)
-            return;
-
-        let beneficiario = BENEFICIARIO_LIST[indexBeneficiario];
-
-        BENEFICIARIO_LIST.splice(indexBeneficiario, 1);
-
-        localStorage.setItem("beneficiario-list", JSON.stringify(BENEFICIARIO_LIST));
-
-        PreencherListaBeneficiarios();
-        ResetarCamposModal();
-        ResetarVariaveisEdicao();
-
-        ExcluirBeneficiario(beneficiario.Id, beneficiario.IdCliente);
-    });
-
-    $(document).on("click", "#beneficiario-modal", function (e) {
-        e.preventDefault();
-
-        const parsedList = JSON.parse(localStorage.getItem("beneficiario-list"))
-
-        if (Array.isArray(parsedList) && parsedList.length > 0)
-            BENEFICIARIO_LIST = parsedList;
-        else
-            BENEFICIARIO_LIST = []
-    });
-});
-
-function MostrarPopUp() {
-    $("#beneficiario-modal").on("click", function (e) {
-        e.preventDefault();
-
-        let url = e.currentTarget.baseURI.replace(/(Alterar|Incluir)/, "BeneficiarioModal");
-
-        $.ajax({
-            url: url,
-            type: 'POST',
-            contentType: "application/json; charset=utf-8",
-            data: JSON.stringify({}),
-            success: function (response) {
-                if (response.Status === undefined) {
-                    $('#modal-container').html(response);
-                    $('#modalBeneficiarios').modal('show');
-                    $('#CPFBeneficiario').mask('000.000.000-00');
-
-                    PreencherListaBeneficiarios();
-
-                } else {
-                    console.error('Erro na resposta:', response);
-                }
-            }
+            $tbody.append(row);
         });
-    });
-}
 
-function ValidarCampos(cpf, nome) {
-    let mensagemErro = "";
+        $(selectors.table).removeClass('hidden');
+    };
 
-    if (cpf && nome) {
-        const beneficiarioExistente = BENEFICIARIO_LIST.find(item => item.CPF === cpf);
+    const exibirModal = () => {
+        $(selectors.beneficiarioModalTrigger).on('click', (e) => {
+            e.preventDefault();
+            const url = e.currentTarget.baseURI.replace(/(Alterar|Incluir)/, 'BeneficiarioModal');
 
-        if (beneficiarioExistente) {
-            const salvandoAlteracao = ALTER_BENF_INDEX !== null && ALTER_ORIGINAL_OBJ !== null;
-
-            if (salvandoAlteracao) {
-                const foiAlteradoCPF = cpf !== ALTER_ORIGINAL_OBJ.CPF;
-                const foiAlteradoNome = nome !== ALTER_ORIGINAL_OBJ.Nome;
-
-                if (foiAlteradoCPF)
-                    mensagemErro = "O CPF informado já foi cadastrado como beneficiário";
-
-                else if (!foiAlteradoNome && !foiAlteradoCPF) {
-                    mensagemErro = "Beneficiário com os dados informados já está cadastrado";
-                    ResetarCamposModal();
-                    ResetarVariaveisEdicao();
+            $.ajax({
+                url,
+                type: 'POST',
+                contentType: 'application/json; charset=utf-8',
+                data: JSON.stringify({}),
+                success: (response) => {
+                    if (response.Status === undefined) {
+                        $('#modal-container').html(response);
+                        $(selectors.modalBeneficiarios).modal('show');
+                        $(selectors.cpfInput).mask('000.000.000-00');
+                        preencherTabela();
+                    } else
+                        console.error('Erro na resposta:', response);
                 }
+            });
+        });
+    };
 
-                else if (foiAlteradoNome && !foiAlteradoCPF)
-                    return false;
+    const validarCampos = (cpf, nome) => {
+        let mensagemErro = '';
+        if (!cpf) mensagemErro = 'O CPF é obrigatório';
+        if (!nome) mensagemErro += (mensagemErro ? '<br>' : '') + 'O Nome é obrigatório';
 
-            } else
-                mensagemErro = "O CPF informado já foi cadastrado como beneficiário";
+        if (cpf && nome) {
+            if (cpf.length !== 14)
+                mensagemErro = 'O CPF informado está incompleto';
+            else {
+                const existe = beneficiarioList.find(b => b.CPF === cpf);
+                if (existe) {
+                    const isEditando = editarIndex !== null && originalBeneficiario !== null;
+                    if (isEditando) {
+                        const cpfAlterado = cpf !== originalBeneficiario.CPF;
+                        const nomeAlterado = nome !== originalBeneficiario.Nome;
+
+                        if (cpfAlterado)
+                            mensagemErro = 'O CPF informado já foi cadastrado como beneficiário';
+                        else if (!cpfAlterado && !nomeAlterado) {
+                            mensagemErro = 'Beneficiário com os dados informados já está cadastrado';
+                            resetarCampos();
+                            resetarEdicao();
+                        }
+                    } else
+                        mensagemErro = 'O CPF informado já foi cadastrado como beneficiário';
+                }
+            }
         }
-        else if (cpf.length !== 14)
-            mensagemErro = "O CPF informado está incompleto";
-        else
-            return false;
-    }
 
-    if (!cpf)
-        mensagemErro = "O CPF é obrigatório";
+        if (mensagemErro) {
+            ModalDialog('Campo(s) Inválido(s)', mensagemErro);
+            $(selectors.beneficiarioModalTrigger).focus();
+            return true;
+        }
 
-    if (!nome)
-        mensagemErro += "<br> O Nome é obrigatório";
+        return false;
+    };
 
-    ModalDialog("Campo(s) Inválido(s)", mensagemErro);
+    const incluirBeneficiarioServer = (beneficiario) => {
+        $.ajax({
+            url: '/Cliente/IncluirBeneficiario',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify(beneficiario),
+            success: (resp) => {
+                if (resp.Result === 'OK') {
+                    alert(resp.Message);
+                    if (resp.BeneficiarioModels) {
+                        beneficiarioList = resp.BeneficiarioModels;
+                        atualizarLocalStorage();
+                        preencherTabela();
+                    }
+                } else
+                    alert(resp.Message);
+            },
+            error: () => alert('Erro na comunicação com o servidor.')
+        });
+    };
 
-    $('#beneficiario-modal').focus();
+    const excluirBeneficiarioServer = (beneficiarioId, idCliente) => {
+        $.ajax({
+            url: '/Cliente/ExcluirBeneficiario',
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify({ Id: beneficiarioId, IdCliente: idCliente }),
+            success: (resp) => {
+                if (resp.Result === 'OK') {
+                    alert(resp.Message);
+                    if (resp.BeneficiarioModels) {
+                        beneficiarioList = resp.BeneficiarioModels;
+                        atualizarLocalStorage();
+                        preencherTabela();
+                    }
+                } else
+                    alert(resp.Message);
+            },
+            error: () => alert('Erro na comunicação com o servidor.')
+        });
+    };
 
-    return true;
-}
+    const configurarEventos = () => {
+        // Modal close cleanup
+        $(document).on('hidden.bs.modal', selectors.modalBeneficiarios, () => {
+            $(selectors.beneficiarioModalTrigger).focus();
+            $('.modal-backdrop').remove();
+        });
 
-function ResetarCamposModal() {
-    $("#CPFBeneficiario").val("");
-    $("#NomeBeneficiario").val("");
-}
+        // Incluir / Alterar beneficiario
+        $(document).on('click', selectors.incluirBtn, (e) => {
+            e.preventDefault();
+            const cpf = $(selectors.cpfInput).val();
+            const nome = $(selectors.nomeInput).val();
 
-function ResetarVariaveisEdicao() {
-    ALTER_BENF_INDEX = null;
-    ALTER_ORIGINAL_OBJ = null;
-}
+            if (validarCampos(cpf, nome)) return;
 
-function IncluirBeneficiario(beneficiario) {
-    $.ajax({
-        url: '/Cliente/IncluirBeneficiario',
-        type: 'POST',
-        contentType: 'application/json; charset=utf-8',
-        data: JSON.stringify(beneficiario),
-        success: function (response) {
-            if (response.Result === 'OK') {
-                alert(response.Message);
-                localStorage.setItem('beneficiario-list', JSON.stringify(response.BeneficiarioModels));
+            const fluxoAlterar = isAlterarFluxo();
+
+            if (editarIndex === null) {
+                const novo = {
+                    Id: 0,
+                    CPF: cpf,
+                    Nome: nome,
+                    IdCliente: obterIdCliente()
+                };
+                beneficiarioList.push(novo);
+
+                if (fluxoAlterar) incluirBeneficiarioServer(novo);
             } else {
-                alert(response.Message);
+                const localList = JSON.parse(localStorage.getItem('beneficiario-list')) || [];
+                const original = localList[editarIndex] || {};
+
+                beneficiarioList[editarIndex] = {
+                    Id: original.Id,
+                    CPF: cpf,
+                    Nome: nome,
+                    IdCliente: original.IdCliente,
+                };
+
+                if (fluxoAlterar) incluirBeneficiarioServer(beneficiarioList[editarIndex]);
             }
-        },
-        error: function () {
-            alert('Erro na comunicação com o servidor.');
-        }
-    });
-}
 
-function PreencherListaBeneficiarios() {
-    let beneficiarioList = localStorage.getItem("beneficiario-list")
+            atualizarLocalStorage();
+            preencherTabela();
+            resetarCampos();
+            resetarEdicao();
+        });
 
-    if (beneficiarioList) {
-        const parsedList = JSON.parse(beneficiarioList)
+        // Botao Alterar
+        $(document).on('click', '.alterar-button', (e) => {
+            e.preventDefault();
+            editarIndex = Number($(e.currentTarget).data('index'));
+            if (isNaN(editarIndex) || editarIndex < 0 || editarIndex >= beneficiarioList.length) return;
 
-        $("table.table tbody").empty();
-        $("table.table").addClass("hidden");
+            const b = beneficiarioList[editarIndex];
+            $(selectors.cpfInput).val(formatarCPF(b.CPF)).mask('000.000.000-00');
+            $(selectors.nomeInput).val(b.Nome);
 
-        if (Array.isArray(parsedList) && parsedList.length > 0) {
-            parsedList.forEach((item, index) => {
-                AdicionarLinha(item, index)
-            })
+            originalBeneficiario = { ...b };
+        });
 
-            BENEFICIARIO_LIST = parsedList;
-        }
-    }
-}
+        // Botao Excluir
+        $(document).on('click', '.excluir-button', (e) => {
+            e.preventDefault();
+            if (!confirm('Tem certeza de que deseja excluir este beneficiário? Este processo é irreversível.')) return;
 
-function AdicionarLinha(beneficiario, index) {
-    let novaLinha = `
-        <tr>
-            <input type="hidden" id="id-benef" name="id-benef" value="${beneficiario.Id}">
-            <input type="hidden" id="id-client" name="id-client" value="${beneficiario.IdCliente}">
-            <td data-label="CPF">${formatarCPF(beneficiario.CPF)}</td>
-            <td class="nome-cell" data-label="Nome" title="${beneficiario.Nome}">${beneficiario.Nome}</td>
-            <td data-label="Ações" style="justify-content: space-between; display: flex;">
-                <button data-index="${index}" class="btn btn-primary alterar-button">Alterar</button>
-                <button data-index="${index}" class="btn btn-primary excluir-button">Excluir</button>
-            </td>
-        </tr>
-    `;
+            const idx = Number($(e.currentTarget).data('index'));
+            if (isNaN(idx) || idx < 0 || idx >= beneficiarioList.length) return;
 
-    const $table = $("table.table");
-    const $tbody = $table.find("tbody");
+            const b = beneficiarioList[idx];
+            beneficiarioList.splice(idx, 1);
+            atualizarLocalStorage();
+            preencherTabela();
+            resetarCampos();
+            resetarEdicao();
 
-    $tbody.append(novaLinha);
+            excluirBeneficiarioServer(b.Id, b.IdCliente);
+        });
 
-    if ($table.hasClass("hidden"))
-        $table.removeClass("hidden");
-}
+        // Ao abrir modal, carregar lista do localStorage
+        $(document).on('click', selectors.beneficiarioModalTrigger, (e) => {
+            e.preventDefault();
+            const stored = JSON.parse(localStorage.getItem('beneficiario-list'));
+            beneficiarioList = Array.isArray(stored) && stored.length > 0 ? stored : [];
+        });
+    };
 
-function ExcluirBeneficiario(beneficiarioId, idCliente) {
-    $.ajax({
-        url: `/Cliente/ExcluirBeneficiario`,
-        type: 'POST',
-        contentType: "application/json; charset=utf-8",
-        data: JSON.stringify({ "Id": beneficiarioId, "IdCliente": idCliente }),
-        success: function (response) {
-            if (response.Result === "OK") {
-                alert(response.Message);
+    const init = () => {
+        exibirModal();
+        configurarEventos();
+    };
 
-                if (response.BeneficiarioModels)
-                    localStorage.setItem("beneficiario-list", JSON.stringify(response.BeneficiarioModels));
-            }
-            else
-                alert(response.Message);
-        },
+    // Expor apenas o método init
+    return {
+        init,
+    };
+})();
 
-        error: function () {
-            alert('Erro na comunicação com o servidor.');
-        }
-    });
-}
+$(document).ready(() => {
+    BeneficiariosModule.init();
+});
